@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetris Battle - 俄羅斯方塊對戰</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Main Menu Screen -->
+        <div id="menu-screen" class="screen active">
+            <div class="menu-container">
+                <h1>🎮 TETRIS BATTLE</h1>
+                <p class="subtitle">俄羅斯方塊對戰</p>
+                <div class="menu-buttons">
+                    <button class="btn-primary" onclick="game.startPvPMode()">對戰模式 (PvP)</button>
+                    <button class="btn-secondary" onclick="game.startPracticeMode()">練習模式 (vs AI)</button>
+                    <button class="btn-tertiary" onclick="game.showRules()">遊戲規則</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PvP Options Screen -->
+        <div id="pvp-options-screen" class="screen">
+            <div class="menu-container">
+                <h2>對戰模式</h2>
+                <div class="menu-buttons">
+                    <button class="btn-primary" onclick="game.showCreateRoom()">開啟對戰</button>
+                    <button class="btn-secondary" onclick="game.showJoinRoom()">加入對戰</button>
+                    <button class="btn-tertiary" onclick="game.showMenu()">返回</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Room Screen -->
+        <div id="create-room-screen" class="screen">
+            <div class="menu-container">
+                <h2>開啟對戰</h2>
+                <div class="join-form">
+                    <label for="create-player-name">輸入你的名字：</label>
+                    <input type="text" id="create-player-name" maxlength="20" placeholder="玩家">
+                    <button class="btn-primary" onclick="game.createRoomWithName()">開始</button>
+                </div>
+                <div class="room-info" id="room-waiting-area" style="display: none;">
+                    <p>房間代碼：</p>
+                    <div class="room-code" id="room-code-display">等待中...</div>
+                    <p class="room-status">等待對手加入...</p>
+                    <button class="btn-secondary" onclick="game.cancelRoom()">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Join Room Screen -->
+        <div id="join-room-screen" class="screen">
+            <div class="menu-container">
+                <h2>加入對戰</h2>
+                <div class="join-form">
+                    <label for="join-player-name">輸入你的名字：</label>
+                    <input type="text" id="join-player-name" maxlength="20" placeholder="玩家">
+                    <label for="room-code-input">輸入房間代碼：</label>
+                    <input type="text" id="room-code-input" maxlength="6" placeholder="例如: A3X9K2">
+                    <button class="btn-primary" onclick="game.joinRoomWithCode()">加入</button>
+                    <p class="error-message" id="join-error"></p>
+                </div>
+                <button class="btn-tertiary" onclick="game.showPvPOptions()">返回</button>
+            </div>
+        </div>
+
+        <!-- AI Difficulty Screen -->
+        <div id="ai-difficulty-screen" class="screen">
+            <div class="menu-container">
+                <h2>選擇 AI 難度</h2>
+                <div class="menu-buttons">
+                    <button class="btn-primary" onclick="game.startPracticeWithDifficulty('easy')">簡單</button>
+                    <button class="btn-secondary" onclick="game.startPracticeWithDifficulty('medium')">中等</button>
+                    <button class="btn-danger" onclick="game.startPracticeWithDifficulty('hard')">困難</button>
+                    <button class="btn-tertiary" onclick="game.showMenu()">返回</button>
+                </div>
+                <div class="difficulty-info">
+                    <p>簡單：適合新手練習</p>
+                    <p>中等：一般挑戰難度</p>
+                    <p>困難：極具挑戰性</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rules Screen -->
+        <div id="rules-screen" class="screen">
+            <div class="rules-container">
+                <h2>遊戲規則</h2>
+                <div class="rules-content">
+                    <h3>基本玩法</h3>
+                    <ul>
+                        <li>使用方向鍵控制方塊：← → 左右移動，↓ 加速下落，↑ 旋轉</li>
+                        <li>空白鍵快速放置方塊</li>
+                        <li>消除橫排即可得分</li>
+                    </ul>
+                    
+                    <h3>對戰機制</h3>
+                    <ul>
+                        <li>連續消除（Combo）會給對手增加干擾層數</li>
+                        <li>特殊消除（一次消除多行）會發送更多干擾</li>
+                        <li>觸頂（方塊超出遊戲區域）會失去一條生命</li>
+                        <li><strong>連續觸頂 3 次即輸掉該局</strong></li>
+                    </ul>
+                    
+                    <h3>計分系統</h3>
+                    <ul>
+                        <li>單行消除：100 分</li>
+                        <li>雙行消除：300 分</li>
+                        <li>三行消除：500 分</li>
+                        <li>四行消除（Tetris）：800 分</li>
+                        <li>Combo 加成：每次連擊額外加分</li>
+                    </ul>
+                </div>
+                <button class="btn-secondary" onclick="game.showMenu()">返回主選單</button>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen">
+            <div class="game-container">
+                <!-- Player 1 Board -->
+                <div class="player-area">
+                    <div class="player-info">
+                        <h3 id="player1-name">玩家 1</h3>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <span class="stat-label">分數</span>
+                                <span id="player1-score" class="stat-value">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">生命</span>
+                                <span id="player1-lives" class="stat-value">❤️❤️❤️</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Combo</span>
+                                <span id="player1-combo" class="stat-value">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="board-wrapper">
+                        <div class="next-piece">
+                            <p>下一個</p>
+                            <canvas id="player1-next" width="80" height="80"></canvas>
+                        </div>
+                        <canvas id="player1-board" width="300" height="600"></canvas>
+                    </div>
+                </div>
+
+                <!-- VS Indicator -->
+                <div class="vs-indicator">
+                    <div class="vs-text">VS</div>
+                    <div id="garbage-indicator" class="garbage-indicator hidden">
+                        <span id="garbage-arrow"></span>
+                        <span id="garbage-count">0</span>
+                    </div>
+                    <div class="game-timer" id="game-timer">00:00</div>
+                </div>
+
+                <!-- Player 2 Board -->
+                <div class="player-area">
+                    <div class="player-info">
+                        <h3 id="player2-name">玩家 2</h3>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <span class="stat-label">分數</span>
+                                <span id="player2-score" class="stat-value">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">生命</span>
+                                <span id="player2-lives" class="stat-value">❤️❤️❤️</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Combo</span>
+                                <span id="player2-combo" class="stat-value">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="board-wrapper">
+                        <div class="next-piece">
+                            <p>下一個</p>
+                            <canvas id="player2-next" width="80" height="80"></canvas>
+                        </div>
+                        <canvas id="player2-board" width="300" height="600"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Controls -->
+            <div class="game-controls">
+                <button class="btn-small" onclick="game.pauseGame()">暫停</button>
+                <button class="btn-small" onclick="game.exitToMenu()">離開</button>
+            </div>
+
+            <!-- Mobile Touch Controls -->
+            <div class="touch-controls" id="touch-controls">
+                <div class="touch-row">
+                    <button class="touch-btn" ontouchstart="game.handleTouch('rotate')" ontouchend="game.handleTouchEnd()">🔄</button>
+                </div>
+                <div class="touch-row">
+                    <button class="touch-btn" ontouchstart="game.handleTouch('left')" ontouchend="game.handleTouchEnd()">←</button>
+                    <button class="touch-btn" ontouchstart="game.handleTouch('down')" ontouchend="game.handleTouchEnd()">↓</button>
+                    <button class="touch-btn" ontouchstart="game.handleTouch('right')" ontouchend="game.handleTouchEnd()">→</button>
+                </div>
+                <div class="touch-row">
+                    <button class="touch-btn touch-btn-wide" ontouchstart="game.handleTouch('drop')" ontouchend="game.handleTouchEnd()">快速下落</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameover-screen" class="screen">
+            <div class="gameover-container">
+                <h2 id="gameover-title">遊戲結束</h2>
+                <div id="gameover-result" class="result-text"></div>
+                <div class="final-stats">
+                    <h3>最終成績</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h4 id="winner-name">玩家 1</h4>
+                            <p>分數: <span id="winner-score">0</span></p>
+                            <p>最高 Combo: <span id="winner-combo">0</span></p>
+                        </div>
+                        <div class="stat-card">
+                            <h4 id="loser-name">玩家 2</h4>
+                            <p>分數: <span id="loser-score">0</span></p>
+                            <p>最高 Combo: <span id="loser-combo">0</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="menu-buttons">
+                    <button class="btn-primary" onclick="game.restartGame()">再玩一次</button>
+                    <button class="btn-secondary" onclick="game.showMenu()">返回主選單</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
