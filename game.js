@@ -511,7 +511,7 @@ class Game {
   }
   
   connectSocket() {
-    const socketUrl = "https://tetrix-battle-v5-0-1.onrender.com";
+    const socketUrl = 'https://tetrix-battle-v5-0-1.onrender.com';
     this.socket = io(socketUrl);
     
     this.socket.on('roomCreated', ({ roomId, playerId }) => {
